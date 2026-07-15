@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Irrigation Dashboard</title>
+
+    <!-- 
+      If splitting files locally, remove this <style> block and link your CSS like this:
+      <link rel="stylesheet" href="styles.css">
+    -->
+
+    <!-- ============================================================== -->
+    <!-- CSS SECTION (Copy everything inside here into your styles.css) -->
+    <!-- ============================================================== -->
+    <style>
+        :root {
+            --bg-base: #121212;
+            --bg-card: #1e1e1e;
+            --text-main: #ffffff;
+            --text-muted: #a0a0a0;
+            --accent: #4CAF50;
+            --danger: #f44336;
+            --warning: #ffc107;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .dashboard {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        /* --- Header Styles --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #333;
+        }
+
+        .status-badge {
+            background-color: rgba(76, 175, 80, 0.2);
+            color: var(--accent);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        /* --- Sensor Grid Styles --- */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-title {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .card-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+
+        /* --- Panel & Form Styles --- */
+        .panel {
+            background-color: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        select {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            border: 1px solid #333;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        select:focus {
+            border-color: var(--accent);
+        }
+
+        /* --- Toggle Switch Styles --- */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #555;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- =================================================================== -->
+    <!-- HTML SECTION (Keep this in index.html, right inside the <body> tag) -->
+    <!-- =================================================================== -->
+    <div class="dashboard">
+        <header>
+            <div>
+                <h1>Irrigation System</h1>
+                <p style="color: var(--text-muted); margin-top: 0.25rem;">Node 1 (V1)</p>
+            </div>
+            <div class="status-badge" id="system-status">System Online</div>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <span class="card-title">Soil Moisture</span>
+                <span class="card-value" id="moisture-val">--%</span>
+            </div>
+            <div class="card">
+                <span class="card-title">Temperature</span>
+                <span class="card-value" id="temp-val">--°C</span>
+            </div>
+            <div class="card">
+                <span class="card-title">Light Intensity</span>
+                <span class="card-value" id="light-val">--%</span>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div>
+                <h3>Crop Configuration</h3>
+                <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">Set the active crop for the ML model.</p>
+            </div>
+            <select id="crop-selector">
+                <option value="wheat">Wheat</option>
+                <option value="corn">Corn</option>
+                <option value="rice">Rice</option>
+                <option value="tomatoes">Tomatoes</option>
+            </select>
+        </div>
+
+        <div class="panel">
+            <div>
+                <h3>Manual Override</h3>
+                <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">Valve Status: <span id="valve-status-text">Closed</span></p>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="valve-toggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+
+    <!-- 
+      If splitting files locally, remove this <script> block and link your JS like this:
+      <script src="app.js"></script>
+    -->
+
+    <!-- ========================================================== -->
+    <!-- JS SECTION (Copy everything inside here into your app.js)  -->
+    <!-- ========================================================== -->
+    <script>
+        // 1. Initial State / Mock Data
+        const state = {
+            systemStatus: "Online",
+            soilMoisture: 42,
+            temperature: 26,
+            lightIntensity: 80,
+            valveOpen: false,
+            currentCrop: "wheat"
+        };
+
+        // 2. DOM Elements
+        const elements = {
+            moistureDisplay: document.getElementById('moisture-val'),
+            tempDisplay: document.getElementById('temp-val'),
+            lightDisplay: document.getElementById('light-val'),
+            valveToggle: document.getElementById('valve-toggle'),
+            valveStatusText: document.getElementById('valve-status-text'),
+            cropSelector: document.getElementById('crop-selector'),
+            systemStatus: document.getElementById('system-status')
+        };
+
+        // 3. Render Dashboard UI
+        function renderDashboard(data) {
+            // Update Text values
+            elements.moistureDisplay.innerText = data.soilMoisture + '%';
+            elements.tempDisplay.innerText = data.temperature + '°C';
+            elements.lightDisplay.innerText = data.lightIntensity + '%';
+            
+            // Sync inputs with state
+            elements.valveToggle.checked = data.valveOpen;
+            elements.cropSelector.value = data.currentCrop;
+            
+            // Update Valve UI
+            updateValveText(data.valveOpen);
+
+            // Conditional warning styles (e.g., moisture below 30%)
+            if(data.soilMoisture < 30) {
+                elements.moistureDisplay.style.color = 'var(--danger)';
+            } else {
+                elements.moistureDisplay.style.color = 'var(--text-main)';
+            }
+        }
+
+        // 4. UI Helper: Update Valve Text
+        function updateValveText(isOpen) {
+            if(isOpen) {
+                elements.valveStatusText.innerText = "Open (Watering)";
+                elements.valveStatusText.style.color = 'var(--accent)';
+            } else {
+                elements.valveStatusText.innerText = "Closed";
+                elements.valveStatusText.style.color = 'var(--text-muted)';
+            }
+        }
+
+        // 5. Event Listeners
+        
+        // Listen for manual valve toggle
+        elements.valveToggle.addEventListener('change', (e) => {
+            const isChecked = e.target.checked;
+            state.valveOpen = isChecked;
+            updateValveText(isChecked);
+            
+            // TODO (Integration): Send this state change to your Raspberry Pi via Fetch/WebSocket
+            console.log("Manual Override updated. Valve is now:", isChecked ? "OPEN" : "CLOSED");
+        });
+
+        // Listen for crop selection changes
+        elements.cropSelector.addEventListener('change', (e) => {
+            const selectedCrop = e.target.value;
+            state.currentCrop = selectedCrop;
+            
+            console.log("New crop selected:", selectedCrop);
+            
+            // Show temporary recalculation status
+            elements.systemStatus.innerText = "Recalculating Thresholds...";
+            elements.systemStatus.style.backgroundColor = "rgba(255, 193, 7, 0.2)"; // Yellow
+            elements.systemStatus.style.color = "var(--warning)";
+            
+            // Reset status after a brief delay
+            setTimeout(() => {
+                elements.systemStatus.innerText = "System Online";
+                elements.systemStatus.style.backgroundColor = "rgba(76, 175, 80, 0.2)"; // Green
+                elements.systemStatus.style.color = "var(--accent)";
+            }, 1500);
+            
+            // TODO (Integration): Send crop change to the ML Model on the server
+        });
+
+        // 6. Initialize App
+        // This will run when the page loads
+        renderDashboard(state);
+        
+        /* // 7. Future Integration Pattern (Uncomment when hardware is ready)
+        // Set up a loop to fetch live data from your Raspberry Pi server
+        
+        async function fetchHardwareData() {
+            try {
+                const response = await fetch('http://[YOUR-RPI-IP-ADDRESS]/api/status');
+                const liveData = await response.json();
+                
+                // Merge new data with our state and re-render
+                Object.assign(state, liveData);
+                renderDashboard(state);
+            } catch (err) {
+                console.error("Connection failed", err);
+                elements.systemStatus.innerText = "Offline";
+                elements.systemStatus.style.color = "var(--danger)";
+            }
+        }
+        
+        // Poll every 3 seconds
+        // setInterval(fetchHardwareData, 3000); 
+        */
+    </script>
+</body>
+</html>

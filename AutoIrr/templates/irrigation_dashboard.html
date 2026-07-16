@@ -183,15 +183,15 @@
         <div class="grid">
             <div class="card">
                 <span class="card-title">Soil Moisture</span>
-                <span class="card-value" id="moisture-val">--%</span>
+                <span class="card-value" id="moisture-val">{{ readings.moisture if readings else '--' }}%</span>
             </div>
             <div class="card">
                 <span class="card-title">Temperature</span>
-                <span class="card-value" id="temp-val">--°C</span>
+                <span class="card-value" id="temp-val">{{ readings.temperature if readings else '--' }}°C</span>
             </div>
             <div class="card">
-                <span class="card-title">Light Intensity</span>
-                <span class="card-value" id="light-val">--%</span>
+                <span class="card-title">Irrigation</span>
+                <span class="card-value" id="light-val">{{ readings.irrigation if readings else '--' }}</span>
             </div>
         </div>
 
@@ -200,11 +200,11 @@
                 <h3>Crop Configuration</h3>
                 <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">Set the active crop for the ML model.</p>
             </div>
-            <select id="crop-selector">
-                <option value="wheat">Wheat</option>
-                <option value="corn">Corn</option>
-                <option value="rice">Rice</option>
-                <option value="tomatoes">Tomatoes</option>
+            <select name = "crop" id="crop-selector">
+                <option value="wheat" {% if settings.selected_crop == 'wheat' %}selected{% endif %}>Wheat</option>
+                <option value="corn" {% if settings.selected_crop == 'corn' %}selected{% endif %}>Corn</option>
+                <option value="rice" {% if settings.selected_crop == 'rice' %}selected{% endif %}>Rice</option>
+                <option value="tomatoes" {% if settings.selected_crop == 'tomatoes' %}selected{% endif %}>Tomatoes</option>
             </select>
         </div>
 
@@ -214,31 +214,16 @@
                 <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">Valve Status: <span id="valve-status-text">Closed</span></p>
             </div>
             <label class="switch">
-                <input type="checkbox" id="valve-toggle">
+                <input type="checkbox" name = "irrigation" id="valve-toggle" value="1" {% if settings and settings.irrigation_status == 1 %}checked{% endif %}>
                 <span class="slider"></span>
             </label>
         </div>
     </div>
 
 
-    <!-- 
-      If splitting files locally, remove this <script> block and link your JS like this:
-      <script src="app.js"></script>
-    -->
 
-    <!-- ========================================================== -->
-    <!-- JS SECTION (Copy everything inside here into your app.js)  -->
-    <!-- ========================================================== -->
     <script>
-        // 1. Initial State / Mock Data
-        const state = {
-            systemStatus: "Online",
-            soilMoisture: 42,
-            temperature: 26,
-            lightIntensity: 80,
-            valveOpen: false,
-            currentCrop: "wheat"
-        };
+        
 
         // 2. DOM Elements
         const elements = {
@@ -251,29 +236,9 @@
             systemStatus: document.getElementById('system-status')
         };
 
-        // 3. Render Dashboard UI
-        function renderDashboard(data) {
-            // Update Text values
-            elements.moistureDisplay.innerText = data.soilMoisture + '%';
-            elements.tempDisplay.innerText = data.temperature + '°C';
-            elements.lightDisplay.innerText = data.lightIntensity + '%';
-            
-            // Sync inputs with state
-            elements.valveToggle.checked = data.valveOpen;
-            elements.cropSelector.value = data.currentCrop;
-            
-            // Update Valve UI
-            updateValveText(data.valveOpen);
+        updateValveText(elements.valveToggle.checked);
 
-            // Conditional warning styles (e.g., moisture below 30%)
-            if(data.soilMoisture < 30) {
-                elements.moistureDisplay.style.color = 'var(--danger)';
-            } else {
-                elements.moistureDisplay.style.color = 'var(--text-main)';
-            }
-        }
-
-        // 4. UI Helper: Update Valve Text
+        // UI Helper: Update Valve Text
         function updateValveText(isOpen) {
             if(isOpen) {
                 elements.valveStatusText.innerText = "Open (Watering)";
@@ -284,65 +249,59 @@
             }
         }
 
-        // 5. Event Listeners
-        
-        // Listen for manual valve toggle
-        elements.valveToggle.addEventListener('change', (e) => {
-            const isChecked = e.target.checked;
-            state.valveOpen = isChecked;
-            updateValveText(isChecked);
-            
-            // TODO (Integration): Send this state change to your Raspberry Pi via Fetch/WebSocket
-            console.log("Manual Override updated. Valve is now:", isChecked ? "OPEN" : "CLOSED");
-        });
-
-        // Listen for crop selection changes
-        elements.cropSelector.addEventListener('change', (e) => {
-            const selectedCrop = e.target.value;
-            state.currentCrop = selectedCrop;
-            
-            console.log("New crop selected:", selectedCrop);
-            
-            // Show temporary recalculation status
-            elements.systemStatus.innerText = "Recalculating Thresholds...";
-            elements.systemStatus.style.backgroundColor = "rgba(255, 193, 7, 0.2)"; // Yellow
+        // Send setting changes out to your Flask route via AJAX Fetch API
+        async function saveSystemSettings() {
+            elements.systemStatus.innerText = "Saving Changes...";
+            elements.systemStatus.style.backgroundColor = "rgba(255, 193, 7, 0.2)";
             elements.systemStatus.style.color = "var(--warning)";
-            
-            // Reset status after a brief delay
-            setTimeout(() => {
-                elements.systemStatus.innerText = "System Online";
-                elements.systemStatus.style.backgroundColor = "rgba(76, 175, 80, 0.2)"; // Green
-                elements.systemStatus.style.color = "var(--accent)";
-            }, 1500);
-            
-            // TODO (Integration): Send crop change to the ML Model on the server
-        });
 
-        // 6. Initialize App
-        // This will run when the page loads
-        renderDashboard(state);
-        
-        /* // 7. Future Integration Pattern (Uncomment when hardware is ready)
-        // Set up a loop to fetch live data from your Raspberry Pi server
-        
-        async function fetchHardwareData() {
+            const payload = {
+                irrigation: elements.valveToggle.checked ? 1 : 0,
+                crop: elements.cropSelector.value
+            };
+
             try {
-                const response = await fetch('http://[YOUR-RPI-IP-ADDRESS]/api/status');
-                const liveData = await response.json();
+                // Dynamically routes using Flask blueprint naming conventions
+                const response = await fetch("{{ url_for('dash.update_settings') }}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
                 
-                // Merge new data with our state and re-render
-                Object.assign(state, liveData);
-                renderDashboard(state);
+                if (response.ok) {
+                    setTimeout(() => {
+                        elements.systemStatus.innerText = "System Online";
+                        elements.systemStatus.style.backgroundColor = "rgba(76, 175, 80, 0.2)";
+                        elements.systemStatus.style.color = "var(--accent)";
+                    }, 500);
+                } else {
+                    throw new Error("Server rejected configuration update.");
+                }
             } catch (err) {
-                console.error("Connection failed", err);
-                elements.systemStatus.innerText = "Offline";
+                console.error("Network communication error:", err);
+                elements.systemStatus.innerText = "Connection Error";
+                elements.systemStatus.style.backgroundColor = "rgba(244, 67, 54, 0.2)";
                 elements.systemStatus.style.color = "var(--danger)";
             }
         }
-        
-        // Poll every 3 seconds
-        // setInterval(fetchHardwareData, 3000); 
-        */
+
+        elements.valveToggle.addEventListener('change', (e) => {
+            updateValveText(e.target.checked);
+            saveSystemSettings();
+        });
+
+        elements.cropSelector.addEventListener('change', () => {
+            saveSystemSettings();
+        });
+
+        // Telemetry loop: Gently polls and soft-reloads your dashboard data 
+        setInterval(() => {
+            // Only auto-reload data if the user isn't currently trying to select a crop
+            if (document.activeElement !== elements.cropSelector) {
+                window.location.reload();
+            }
+        }, 4000);
     </script>
+    
 </body>
 </html>

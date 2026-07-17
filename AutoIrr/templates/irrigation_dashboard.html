@@ -5,14 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Irrigation Dashboard</title>
 
-    <!-- 
-      If splitting files locally, remove this <style> block and link your CSS like this:
-      <link rel="stylesheet" href="styles.css">
-    -->
-
-    <!-- ============================================================== -->
-    <!-- CSS SECTION (Copy everything inside here into your styles.css) -->
-    <!-- ============================================================== -->
     <style>
         :root {
             --bg-base: #121212;
@@ -44,7 +36,6 @@
             max-width: 800px;
         }
 
-        /* --- Header Styles --- */
         header {
             display: flex;
             justify-content: space-between;
@@ -81,11 +72,9 @@
         color: var(--danger);
         border: 1px solid rgba(244, 67, 54, 0.5);
         
-        /* Standard layout order: name | duration | timing-function | iteration-count */
         animation: urgent-alarm-blink 0.5s linear infinite;
 }
 
-        /* Smooth flashing pulse animation for emergency irrigation status */
         @keyframes urgent-alarm-blink {
             0%, 49% {
                 background-color: rgba(244, 67, 54, 0.4);
@@ -99,7 +88,6 @@
             }
         }
 
-        /* --- Sensor Grid Styles --- */
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -128,7 +116,6 @@
             font-weight: bold;
         }
 
-        /* --- Panel & Form Styles --- */
         .panel {
             background-color: var(--bg-card);
             padding: 1.5rem;
@@ -154,7 +141,6 @@
             border-color: var(--accent);
         }
 
-        /* --- Toggle Switch Styles --- */
         .switch {
             position: relative;
             display: inline-block;
@@ -203,9 +189,6 @@
 </head>
 <body>
 
-    <!-- =================================================================== -->
-    <!-- HTML SECTION (Keep this in index.html, right inside the <body> tag) -->
-    <!-- =================================================================== -->
     <div class="dashboard">
         <header>
             <div>
@@ -213,7 +196,6 @@
                 <p style="color: var(--text-muted); margin-top: 0.25rem;">Node 1 (V1)</p>
             </div>
             <div class="status-container">
-                <!-- Dynamic Machine Learning Recommendation Badge -->
                 {% if ml_prediction.irrigation_que == 1 %}
                     <div class="status-badge ml-badge-red" id="irr_stat">ML: Irrigate Now!!!</div>
                 {% else %}
@@ -267,9 +249,7 @@
 
 
     <script>
-        
-
-        // 2. DOM Elements
+    
         const elements = {
             moistureDisplay: document.getElementById('moisture-val'),
             tempDisplay: document.getElementById('temp-val'),
@@ -282,7 +262,6 @@
 
         updateValveText(elements.valveToggle.checked);
 
-        // UI Helper: Update Valve Text
         function updateValveText(isOpen) {
             if(isOpen) {
                 elements.valveStatusText.innerText = "Open (Watering)";
@@ -293,7 +272,6 @@
             }
         }
 
-        // Send setting changes out to your Flask route via AJAX Fetch API
         async function saveSystemSettings() {
             elements.systemStatus.innerText = "Saving Changes...";
             elements.systemStatus.style.backgroundColor = "rgba(255, 193, 7, 0.2)";
@@ -305,7 +283,6 @@
             };
 
             try {
-                // Dynamically routes using Flask blueprint naming conventions
                 const response = await fetch("{{ url_for('dash.update_settings') }}", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -338,9 +315,9 @@
             saveSystemSettings();
         });
 
-        // reloads your dashboard data 
+        //reloads your dashboard data 
         setInterval(() => {
-            // Only auto-reload data if the user isn't currently trying to select a crop
+
             if (document.activeElement !== elements.cropSelector) {
                 window.location.reload();
             }

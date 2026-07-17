@@ -1,7 +1,7 @@
 DROP TABLE IF EXISTS user;
 DROP TABLE IF EXISTS readings;
 DROP TABLE IF EXISTS settings;
-DROP TABLE IF EXISTS current;
+DROP TABLE IF EXISTS ml;
 
 CREATE TABLE user (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,3 +25,10 @@ CREATE TABLE settings (
 );
 
 INSERT INTO settings (id, irrigation_status, selected_crop) VALUES (1, 0, 'None');
+
+CREATE TABLE ml(
+    id INTEGER PRIMARY KEY, 
+    irrigation_que INTEGER DEFAULT 0
+);
+
+INSERT INTO ml (id) VALUES (1);

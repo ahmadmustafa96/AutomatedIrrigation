@@ -43,8 +43,12 @@ def index():
     settings = db.execute(
         'SELECT irrigation_status, selected_crop FROM settings WHERE id = 1'
     ).fetchone()
+
+    irrig = db.execute(
+        'SELECT irrigation_que from ml'
+    ).fetchone()
     
-    return render_template('irrigation_dashboard.html', readings=rows, settings=settings)
+    return render_template('irrigation_dashboard.html', readings=rows, settings=settings, ml_prediction=irrig)
 
 @bp.route('/update-settings', methods=['POST'])
 def update_settings():

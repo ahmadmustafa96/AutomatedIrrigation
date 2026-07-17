@@ -20,10 +20,6 @@ def create_app(test_config=None):
 
     # ensure the instance folder exists
     os.makedirs(app.instance_path, exist_ok=True)
-
-    @app.route('/hello')
-    def hello():
-        return 'Hello, World!'
         
     from . import db
     db.init_app(app)
@@ -36,10 +32,14 @@ def create_app(test_config=None):
     app.add_url_rule('/', endpoint='index')
 
     if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        from .machine_learnt import ml_pipeline
         from .serial_worker import serial_reader_worker
         db_path = app.config['DATABASE']
         
         serial_thread = threading.Thread(target=serial_reader_worker, args=(db_path,), daemon=True)
+        serial_thread.start()
+
+        serial_thread = threading.Thread(target=ml_pipeline, args=(db_path,), daemon=True)
         serial_thread.start()
 
     return app

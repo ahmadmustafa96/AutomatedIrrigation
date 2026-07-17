@@ -39,9 +39,10 @@ def serial_reader_worker(db_path):
                         conn.commit()
                         conn.close()
                         print(f"[Logged] Temp: {temperature}°C | Mois: {moisture}% | Irrigation: {irrigation_status} | Crop: {selected_crop}")
+                        time.sleep(1)
                     except ValueError:
                         print(f"[Serial Warning] Parsing issue with line: {raw_line}")
-            time.sleep(0.1)
+            time.sleep(1)
     except Exception as e:
         print(f"[Serial Error] Lost connection: {e}. Retrying in 10 seconds...")
         time.sleep(10)
